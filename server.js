@@ -16,8 +16,11 @@ const mqttClient = mqtt.connect(`mqtt://${MQTT_SERVER}`, {
     password: `${MQTT_PASSWORD}`
 });
 mqttClient.on("connect", function () {
-    console.log("connected  " + mqttClient.connected);
+    console.log("MQTT connected  " + mqttClient.connected);
 })
+mqttClient.on('error', function(err) {
+    console.log(err);
+});
 const httpServer = express();
 httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
     console.log(`Running on http://${HTTP_HOST}:${HTTP_PORT}`);
