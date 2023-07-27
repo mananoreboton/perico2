@@ -39,7 +39,7 @@ mqttClient.on('message', (topic, message) => {
 
 function speak(message) {
     console.log(`Speaking: ${message}`)
-    if (!message.empty()) {
+    if (message.length > 0) {
         exec(`echo ${message} | ./piper/piper --model langs/en_US-libritts-high.onnx --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE`,
             (error, stdout, stderr) => {
                 console.log('stdout:', stdout);
