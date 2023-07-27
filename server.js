@@ -38,12 +38,15 @@ mqttClient.on('message', (topic, message) => {
 
 
 function speak(message) {
-    exec(`echo ${message} | say`,
-        (error, stdout, stderr) => {
-            console.log('stdout:', stdout);
-            if (error !== null) {
-                console.log('exec error: ', error);
+    console.log(`Speaking: ${message}`)
+    if (!message.empty()) {
+        exec(`echo ${message} | ./piper/piper --model langs/en_US-libritts-high.onnx --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE`,
+            (error, stdout, stderr) => {
+                console.log('stdout:', stdout);
+                if (error !== null) {
+                    console.log('exec error: ', error);
+                }
             }
-        }
-    );
+        );
+    }
 }
