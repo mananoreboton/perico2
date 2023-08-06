@@ -5,9 +5,9 @@ const mqtt = require('mqtt');
 const exec = require('child_process').exec;
 
 // Constants
-const HTTP_PORT = 9001;
+const HTTP_PORT = 9051;
 const HTTP_HOST = '0.0.0.0';
-const MQTT_SERVER = '192.168.1.75';
+const MQTT_SERVER = '192.168.1.74';
 const MQTT_USER = 'perico2';
 const MQTT_PASSWORD = '';
 
@@ -40,11 +40,14 @@ mqttClient.on('message', (topic, message) => {
 function speak(message) {
     console.log(`Speaking: ${message}`)
     if (message.length > 0) {
-        exec(`echo ${message} | ./piper/piper --model langs/en_US-libritts-high.onnx --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE`,
+        exec(`echo ${message} | ./piper/piper --model langs/en_US-libritts-high.onnx --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:1`,
             (error, stdout, stderr) => {
                 console.log('stdout:', stdout);
                 if (error !== null) {
                     console.log('exec error: ', error);
+		    if (error.signal !== null) {
+	                console.log('signal: ', error.signal);
+		    }
                 }
             }
         );

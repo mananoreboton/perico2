@@ -1,0 +1,9 @@
+version: '3.6'
+
+services:
+  perico2:
+    image: borabora/perico2
+    container_name: perico2
+    privileged: true
+    ports:
+      - "9051:9051"
