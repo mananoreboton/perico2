@@ -49,8 +49,8 @@ httpServer.post('/', (req, res) => {
 
 function procesPayload(message) {
     const json = JSON.parse(message)
-    if (json.payload.action === 'speak') {
-        speak(json.payload.lang, json.payload.voice, json.payload.text);
+    if (json.action === 'speak') {
+        speak(json.lang, json.voice, json.text);
     }
 }
 
