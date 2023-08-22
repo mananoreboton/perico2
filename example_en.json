@@ -1,0 +1,8 @@
+{
+  "payload": {
+    "action": "speak",
+    "lang": "en_US",
+    "voice": "f",
+    "text": "how are you doing"
+  }
+}
