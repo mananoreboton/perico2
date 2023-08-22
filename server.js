@@ -64,7 +64,7 @@ function speak(lang, voice, text) {
             if (modelVoice) {
                 if (voice) {
                     console.log(`Speaking [${lang}][${voice}]: ${text}`)
-                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:1`
+                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:3`
                     console.log(speakCmd)
                     exec(speakCmd,
                         (error, stdout, stderr) => {

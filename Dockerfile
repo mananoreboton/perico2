@@ -17,10 +17,10 @@ RUN npm install
 # If you are building your code for production
 # RUN npm ci --omit=dev
 
-#RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_arm64.tar.gz
-#RUN tar -xzf piper_arm64.tar.gz
-RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_amd64.tar.gz
-RUN tar -xzf piper_amd64.tar.gz
+RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_arm64.tar.gz
+RUN tar -xzf piper_arm64.tar.gz
+#RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_amd64.tar.gz
+#RUN tar -xzf piper_amd64.tar.gz
 
 COPY voices ./voices
 #Dowload voices or get them from your local files server
