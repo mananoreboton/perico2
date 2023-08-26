@@ -7,3 +7,4 @@ services:
     privileged: true
     ports:
       - "9051:9051"
+    restart: unless-stopped
