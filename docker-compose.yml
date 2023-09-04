@@ -10,3 +10,4 @@ services:
       - ./.env:/usr/src/app/.env
     ports:
       - "9051:9051"
+    restart: unless-stopped
