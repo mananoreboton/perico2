@@ -3,13 +3,16 @@
 const express = require('express')
 const mqtt = require('mqtt')
 const exec = require('child_process').exec
+require('dotenv').config()
 
 // Constants
-const HTTP_PORT = 9051
-const HTTP_HOST = '0.0.0.0'
-const MQTT_SERVER = '192.168.1.26'
-const MQTT_USER = 'perico2'
-const MQTT_PASSWORD = ''
+const HTTP_PORT = process.env.HTTP_PORT
+const HTTP_HOST = process.env.HTTP_HOST
+const MQTT_SERVER = process.env.MQTT_SERVER
+const MQTT_TOPIC = process.env.MQTT_TOPIC
+const MQTT_USER = process.env.MQTT_USER
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD
+const ALSA_INTERFACE = process.env.ALSA_INTERFACE
 const langModels = new Map()
 const langEnModels = new Map()
 const langEsModels = new Map()
@@ -25,12 +28,12 @@ const mqttClient = mqtt.connect(`mqtt://${MQTT_SERVER}`, {
     password: `${MQTT_PASSWORD}`
 })
 mqttClient.on("connect", function () {
-    console.log("MQTT connected  " + mqttClient.connected)
+    console.log(`Connected to MQTT server at ${MQTT_SERVER}: ` + mqttClient.connected)
 })
 mqttClient.on('error', function(err) {
     console.log(err)
 })
-mqttClient.subscribe('perico2')
+mqttClient.subscribe(MQTT_TOPIC)
 
 mqttClient.on('message', (topic, message) => {
     //console.log(`Received message on topic ${topic}: ${message}`)
@@ -39,7 +42,7 @@ mqttClient.on('message', (topic, message) => {
 
 const httpServer = express()
 httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
-    console.log(`Running on http://${HTTP_HOST}:${HTTP_PORT}`)
+    console.log(`Running HTTP server on http://${HTTP_HOST}:${HTTP_PORT}`)
 })
 
 httpServer.post('/', (req, res) => {
@@ -64,7 +67,7 @@ function speak(lang, voice, text) {
             if (modelVoice) {
                 if (voice) {
                     console.log(`Speaking [${lang}][${voice}]: ${text}`)
-                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:3`
+                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D ${ALSA_INTERFACE}`
                     console.log(speakCmd)
                     exec(speakCmd,
                         (error, stdout, stderr) => {

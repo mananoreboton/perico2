@@ -5,5 +5,8 @@ services:
     image: borabora/perico2
     container_name: perico2
     privileged: true
+    volumes:
+      - ./volumes/perico2/voices:/usr/src/app/voices
+      - ./.env:/usr/src/app/.env
     ports:
       - "9051:9051"

@@ -22,7 +22,7 @@ RUN tar -xzf piper_arm64.tar.gz
 #RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_amd64.tar.gz
 #RUN tar -xzf piper_amd64.tar.gz
 
-COPY voices ./voices
+#COPY voices ./voices
 #Dowload voices or get them from your local files server
 #RUN curl https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx.json -o en_US-libritts-high.onnx.json
 #RUN curl -LJO https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx
