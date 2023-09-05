@@ -7,6 +7,8 @@ services:
     privileged: true
     volumes:
       - ./volumes/perico2/voices:/usr/src/app/voices
+      - ./volumes/perico2/piper:/usr/src/app/piper
+      - ./volumes/perico2/songs:/usr/src/app/songs
       - ./.env:/usr/src/app/.env
     ports:
       - "9051:9051"

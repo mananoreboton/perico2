@@ -17,8 +17,8 @@ RUN npm install
 # If you are building your code for production
 # RUN npm ci --omit=dev
 
-RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_arm64.tar.gz
-RUN tar -xzf piper_arm64.tar.gz
+# RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_arm64.tar.gz
+# RUN tar -xzf piper_arm64.tar.gz
 #RUN curl -LJO https://github.com/rhasspy/piper/releases/download/v1.1.0/piper_amd64.tar.gz
 #RUN tar -xzf piper_amd64.tar.gz
 
@@ -40,7 +40,7 @@ RUN tar -xzf piper_arm64.tar.gz
 #RUN curl -LJO https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx
 #RUN sleep 4;
 
-RUN curl -LJO https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1MB_MP3.mp3
+#RUN curl -LJO https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1MB_MP3.mp3
 
 COPY asound.conf /etc/asound.conf
 # Bundle app source

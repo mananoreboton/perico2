@@ -28,7 +28,7 @@ const mqttClient = mqtt.connect(`mqtt://${MQTT_SERVER}`, {
     password: `${MQTT_PASSWORD}`
 })
 mqttClient.on("connect", function () {
-    console.log(`Connected to MQTT server at ${MQTT_SERVER}: ` + mqttClient.connected)
+    console.log(`Connected to topic ${MQTT_TOPIC} of MQTT server at ${MQTT_SERVER}: ` + mqttClient.connected)
 })
 mqttClient.on('error', function(err) {
     console.log(err)
@@ -54,13 +54,16 @@ function procesPayload(message) {
     const json = JSON.parse(message)
     if (json.action === 'speak') {
         speak(json.lang, json.voice, json.text);
+    } else if (json.action === 'speak') {
+        speak(json.lang, json.voice, json.text);
+    } else {
+        console.log(`ERROR: Message received with invalid action: ${json.action}`)
     }
 }
 
 function speak(lang, voice, text) {
-
+    console.log('entro')
     if (text.length > 0) {
-
         const modelLang = langModels.get(lang)
         if (modelLang) {
             const modelVoice = modelLang.get(voice)
@@ -83,5 +86,7 @@ function speak(lang, voice, text) {
                 }
             }
         }
+    } else {
+        console.log(`ERROR: Message received with empty text`)
     }
 }

@@ -1,8 +1,6 @@
 {
-  "payload": {
-    "action": "speak",
-    "lang": "es_ES",
-    "voice": "f",
-    "text": "avísame si se escucha"
-  }
+  "action": "speak",
+  "lang": "es_ES",
+  "voice": "f",
+  "text": "avísame si se escucha"
 }
