@@ -53,16 +53,15 @@ httpServer.post('/', (req, res) => {
 function procesPayload(message) {
     const json = JSON.parse(message)
     if (json.action === 'speak') {
-        speak(json.lang, json.voice, json.text);
-    } else if (json.action === 'speak') {
-        speak(json.lang, json.voice, json.text);
+        speak(json.lang, json.voice, clean(json.text));
+    } else if (json.action === 'play') {
+        play(clean(json.text));
     } else {
         console.log(`ERROR: Message received with invalid action: ${json.action}`)
     }
 }
 
 function speak(lang, voice, text) {
-    console.log('entro')
     if (text.length > 0) {
         const modelLang = langModels.get(lang)
         if (modelLang) {
@@ -89,4 +88,31 @@ function speak(lang, voice, text) {
     } else {
         console.log(`ERROR: Message received with empty text`)
     }
+}
+
+function play(text) {
+    if (text.length > 0) {
+        const speakCmd = `mpg123 songs/${text}`
+        console.log(speakCmd)
+        exec(speakCmd,
+            (error, stdout, stderr) => {
+                console.log('stdout:', stdout)
+                if (error !== null) {
+                    console.log('exec error: ', error)
+                    if (error.signal !== null) {
+                        console.log('signal: ', error.signal)
+                    }
+                }
+            }
+        )
+    } else {
+        console.log(`ERROR: Message received with empty text`)
+    }
+}
+
+function clean(text) {
+    if (text) {
+        text = text.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿ0-9,.!;_]+/g, '');
+    }
+    return text;
 }
