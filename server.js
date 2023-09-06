@@ -69,7 +69,7 @@ function speak(lang, voice, text) {
             if (modelVoice) {
                 if (voice) {
                     console.log(`Speaking [${lang}][${voice}]: ${text}`)
-                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D ${ALSA_INTERFACE}`
+                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`
                     console.log(speakCmd)
                     exec(speakCmd,
                         (error, stdout, stderr) => {
@@ -92,7 +92,7 @@ function speak(lang, voice, text) {
 
 function play(text) {
     if (text.length > 0) {
-        const speakCmd = `mpg123 songs/${text}`
+        const speakCmd = `mpg123 -a hw:${ALSA_INTERFACE},0 songs/${text}`
         console.log(speakCmd)
         exec(speakCmd,
             (error, stdout, stderr) => {
