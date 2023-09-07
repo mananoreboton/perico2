@@ -22,18 +22,19 @@ langEsModels.set('f', 'es_ES-mls_10246-low.onnx')
 langEsModels.set('m', 'es_ES-sharvard-medium.onnx')
 langModels.set('en_US', langEnModels)
 langModels.set('es_ES', langEsModels)
+var status = "AVAILABLE";
 
 const mqttClient = mqtt.connect(`mqtt://${MQTT_SERVER}`, {
     username: `${MQTT_USER}`,
     password: `${MQTT_PASSWORD}`
 })
 mqttClient.on("connect", function () {
+    mqttClient.subscribe(MQTT_TOPIC)
     console.log(`Connected to topic ${MQTT_TOPIC} of MQTT server at ${MQTT_SERVER}: ` + mqttClient.connected)
 })
 mqttClient.on('error', function(err) {
     console.log(err)
 })
-mqttClient.subscribe(MQTT_TOPIC)
 
 mqttClient.on('message', (topic, message) => {
     //console.log(`Received message on topic ${topic}: ${message}`)
@@ -70,18 +71,7 @@ function speak(lang, voice, text) {
                 if (voice) {
                     console.log(`Speaking [${lang}][${voice}]: ${text}`)
                     const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`
-                    console.log(speakCmd)
-                    exec(speakCmd,
-                        (error, stdout, stderr) => {
-                            console.log('stdout:', stdout)
-                            if (error !== null) {
-                                console.log('exec error: ', error)
-                                if (error.signal !== null) {
-                                    console.log('signal: ', error.signal)
-                                }
-                            }
-                        }
-                    )
+                    executeCommand(speakCmd);
                 }
             }
         }
@@ -92,19 +82,8 @@ function speak(lang, voice, text) {
 
 function play(text) {
     if (text.length > 0) {
-        const speakCmd = `mpg123 -a hw:${ALSA_INTERFACE},0 songs/${text}`
-        console.log(speakCmd)
-        exec(speakCmd,
-            (error, stdout, stderr) => {
-                console.log('stdout:', stdout)
-                if (error !== null) {
-                    console.log('exec error: ', error)
-                    if (error.signal !== null) {
-                        console.log('signal: ', error.signal)
-                    }
-                }
-            }
-        )
+        const playCmd = `mpg123 -a hw:${ALSA_INTERFACE},0 songs/${text}`
+        executeCommand(playCmd);
     } else {
         console.log(`ERROR: Message received with empty text`)
     }
@@ -112,7 +91,32 @@ function play(text) {
 
 function clean(text) {
     if (text) {
-        text = text.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿ0-9,.!;_]+/g, '');
+        text = text.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿ0-9,.!;_\s]+/g, '');
     }
     return text;
+}
+
+function updateStatus(newStatus) {
+    status = newStatus;
+    mqttClient.publish(`${MQTT_TOPIC}/status`, status)
+}
+
+function executeCommand(speakCmd) {
+    console.log(speakCmd)
+    if (status === "AVAILABLE") {
+        updateStatus("BUSY");
+        exec(speakCmd,
+            (error, stdout, stderr) => {
+                if (error !== null) {
+                    console.log('exec error: ', error)
+                    if (error.signal !== null) {
+                        console.log('signal: ', error.signal)
+                    }
+                }
+                updateStatus("AVAILABLE");
+            }
+        )
+    } else {
+        console.log("DEVICE NOT AVAILABLE")
+    }
 }
