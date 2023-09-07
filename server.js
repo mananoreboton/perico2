@@ -31,6 +31,7 @@ const mqttClient = mqtt.connect(`mqtt://${MQTT_SERVER}`, {
 mqttClient.on("connect", function () {
     mqttClient.subscribe(MQTT_TOPIC)
     console.log(`Connected to topic ${MQTT_TOPIC} of MQTT server at ${MQTT_SERVER}: ` + mqttClient.connected)
+    updateStatus("AVAILABLE");
 })
 mqttClient.on('error', function(err) {
     console.log(err)
