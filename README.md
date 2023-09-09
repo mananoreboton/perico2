@@ -6,7 +6,7 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 
 ### Setting up:
 
-- Be sure you have docker, docker-compose, node and npm installed
+- Be sure you have docker (20.10+), docker-compose, node (v20.3.1) and npm (9.6.7) installed
 
 - Download Javascript dependencies:
   > npm -i
