@@ -103,8 +103,8 @@ function updateStatus(newStatus) {
 }
 
 function executeCommand(speakCmd) {
-    console.log(speakCmd)
     if (status === "AVAILABLE") {
+        console.log(speakCmd)
         updateStatus("BUSY");
         exec(speakCmd,
             (error, stdout, stderr) => {
