@@ -39,7 +39,7 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
   > tar -xzf piper_amd64.tar.gz  
     - back to project's root folder.
   > cd ../../
-  > ln -s volumes/perico2/piper piper
+  > ln -s volumes/perico2/piper piper  
 
 - Download the songs you want to have available
   > mkdir -p volumes/perico2/songs  
@@ -54,6 +54,8 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 
 - > docker build . -t borabora/perico2
 - > docker-compose up -d
+or  
+- > docker compose up -d
 
 ### Troubleshooting:
 
