@@ -70,7 +70,6 @@ function speak(lang, voice, text) {
             const modelVoice = modelLang.get(voice)
             if (modelVoice) {
                 if (voice) {
-                    console.log(`Speaking [${lang}][${voice}]: ${text}`)
                     const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`
                     executeCommand(speakCmd);
                 }
