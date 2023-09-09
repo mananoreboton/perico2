@@ -39,7 +39,7 @@ mqttClient.on('error', function(err) {
 
 mqttClient.on('message', (topic, message) => {
     //console.log(`Received message on topic ${topic}: ${message}`)
-    procesPayload(message)
+    processPayload(message)
 })
 
 const httpServer = express()
@@ -49,15 +49,15 @@ httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
 
 httpServer.post('/', (req, res) => {
     res.send('Received message')
-    procesPayload(req.body)
+    processPayload(req.body)
 })
 
-function procesPayload(message) {
+function processPayload(message) {
     const json = JSON.parse(message)
     if (json.action === 'speak') {
         speak(json.lang, json.voice, clean(json.text));
     } else if (json.action === 'play') {
-        play(clean(json.text));
+        play(clean(json.name));
     } else {
         console.log(`ERROR: Message received with invalid action: ${json.action}`)
     }

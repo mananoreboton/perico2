@@ -6,11 +6,16 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 
 ### Setting up:
 
+- Be sure you have docker, docker-compose, node and npm installed
+
+- Download Javascript dependencies:
+  > npm -i
+
 - Configure environment variables
   > cp .env_example .env  
     - and replace the values in the .env file.
 
-- Download voices
+- Download voices (Ideally 'volumes' is a folder on an external hard drive)
   > mkdir -p volumes/perico2/voices  
   > ln -s volumes/perico2/voices voices  
   > cd voices
