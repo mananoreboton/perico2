@@ -18,7 +18,7 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 - Download voices (Ideally 'volumes' is a folder on an external hard drive)
   > mkdir -p volumes/perico2/voices  
   > ln -s volumes/perico2/voices voices  
-  > cd voices
+  > cd voices  
   > curl https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx.json -o en_US-libritts-high.onnx.json  
   > curl -LJO https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx  
   > curl https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/en_US-ryan-high.onnx.json -o en_US-ryan-high.onnx.json  
