@@ -12,7 +12,7 @@ const MQTT_SERVER = process.env.MQTT_SERVER
 const MQTT_TOPIC = process.env.MQTT_TOPIC
 const MQTT_USER = process.env.MQTT_USER
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD
-const ALSA_INTERFACE = process.env.ALSA_INTERFACE
+const alsaInterface = process.env.ALSA_INTERFACE
 const langModels = new Map()
 const langEnModels = new Map()
 const langEsModels = new Map()
@@ -42,6 +42,8 @@ mqttClient.on('message', (topic, message) => {
     processPayload(message)
 })
 
+speak('es_ES', 'm', `Iniciando servidor con interface ${alsaInterface}`);
+
 const httpServer = express()
 httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
     console.log(`Running HTTP server on http://${HTTP_HOST}:${HTTP_PORT}`)
@@ -70,7 +72,7 @@ function speak(lang, voice, text) {
             const modelVoice = modelLang.get(voice)
             if (modelVoice) {
                 if (voice) {
-                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`
+                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${alsaInterface}`
                     executeCommand(speakCmd);
                 }
             }
@@ -82,7 +84,7 @@ function speak(lang, voice, text) {
 
 function play(text) {
     if (text.length > 0) {
-        const playCmd = `mpg123 -a hw:${ALSA_INTERFACE},0 songs/${text}`
+        const playCmd = `mpg123 -a hw:${alsaInterface},0 songs/${text}`
         executeCommand(playCmd);
     } else {
         console.log(`ERROR: Message received with empty text`)
@@ -108,6 +110,7 @@ function executeCommand(speakCmd) {
         exec(speakCmd,
             (error, stdout, stderr) => {
                 if (error !== null) {
+                    updateAlsaInterface();
                     console.log('exec error: ', error)
                     if (error.signal !== null) {
                         console.log('signal: ', error.signal)
@@ -119,4 +122,8 @@ function executeCommand(speakCmd) {
     } else {
         console.log("DEVICE NOT AVAILABLE")
     }
+}
+
+function updateAlsaInterface() {
+    alsaInterface = (alsaInterface + 1) % 10
 }
