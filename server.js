@@ -42,7 +42,7 @@ mqttClient.on('message', (topic, message) => {
     processPayload(message)
 })
 
-speak('es_ES', 'm', `Iniciando servidor con interface ${alsaInterface}`);
+speak('es_ES', 'm', `Iniciando interface ${alsaInterface}`);
 
 const httpServer = express()
 httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
