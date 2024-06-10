@@ -8,8 +8,10 @@ const app = express();
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
 const MQTT_TOPIC = process.env.MQTT_TOPIC;
 const REST_PORT = process.env.REST_PORT;
+const MQTT_USERNAME = process.env.MQTT_USERNAME;
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
+const MQTT_PORT = process.env.MQTT_PORT || 1883; // Default to 1883 if not specified
 
-let client = mqtt.connect(MQTT_BROKER_URL);
 let isBusy = false;
 
 const actionCommands = {
@@ -30,6 +32,14 @@ const voiceMappings = {
     female: '--voice=female',
     // Add more voice mappings here
 };
+
+const mqttOptions = {
+    username: MQTT_USERNAME,
+    password: MQTT_PASSWORD,
+    port: MQTT_PORT
+};
+
+let client = mqtt.connect(MQTT_BROKER_URL, mqttOptions);
 
 // Publish status
 const publishStatus = (status) => {
