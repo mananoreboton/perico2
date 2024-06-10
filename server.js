@@ -1,123 +1,115 @@
-'use strict'
+require('dotenv').config();
+const express = require('express');
+const mqtt = require('mqtt');
+const { exec } = require('child_process');
 
-const express = require('express')
-const mqtt = require('mqtt')
-const exec = require('child_process').exec
-require('dotenv').config()
+const app = express();
 
-// Constants
-const HTTP_PORT = process.env.HTTP_PORT
-const HTTP_HOST = process.env.HTTP_HOST
-const MQTT_SERVER = process.env.MQTT_SERVER
-const MQTT_TOPIC = process.env.MQTT_TOPIC
-const MQTT_USER = process.env.MQTT_USER
-const MQTT_PASSWORD = process.env.MQTT_PASSWORD
-const ALSA_INTERFACE = process.env.ALSA_INTERFACE
-const langModels = new Map()
-const langEnModels = new Map()
-const langEsModels = new Map()
-langEnModels.set('f', 'en_US-libritts-high.onnx')
-langEnModels.set('m', 'en_US-ryan-high.onnx')
-langEsModels.set('f', 'es_ES-mls_10246-low.onnx')
-langEsModels.set('m', 'es_ES-sharvard-medium.onnx')
-langModels.set('en_US', langEnModels)
-langModels.set('es_ES', langEsModels)
-var status = "AVAILABLE";
+const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
+const MQTT_TOPIC = process.env.MQTT_TOPIC;
+const REST_PORT = process.env.REST_PORT;
 
-const mqttClient = mqtt.connect(`mqtt://${MQTT_SERVER}`, {
-    username: `${MQTT_USER}`,
-    password: `${MQTT_PASSWORD}`
-})
-mqttClient.on("connect", function () {
-    mqttClient.subscribe(MQTT_TOPIC)
-    console.log(`Connected to topic ${MQTT_TOPIC} of MQTT server at ${MQTT_SERVER}: ` + mqttClient.connected)
-    updateStatus("AVAILABLE");
-})
-mqttClient.on('error', function(err) {
-    console.log(err)
-})
+let client = mqtt.connect(MQTT_BROKER_URL);
+let isBusy = false;
 
-mqttClient.on('message', (topic, message) => {
-    //console.log(`Received message on topic ${topic}: ${message}`)
-    procesPayload(message)
-})
+const actionCommands = {
+    list: 'ls',
+    currentDir: 'pwd',
+    diskUsage: 'df -h',
+    // Add more actions and their corresponding commands here
+};
 
-const httpServer = express()
-httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
-    console.log(`Running HTTP server on http://${HTTP_HOST}:${HTTP_PORT}`)
-})
+const languageMappings = {
+    en: '--lang=en',
+    es: '--lang=es',
+    // Add more language mappings here
+};
 
-httpServer.post('/', (req, res) => {
-    res.send('Received message')
-    procesPayload(req.body)
-})
+const voiceMappings = {
+    male: '--voice=male',
+    female: '--voice=female',
+    // Add more voice mappings here
+};
 
-function procesPayload(message) {
-    const json = JSON.parse(message)
-    if (json.action === 'speak') {
-        speak(json.lang, json.voice, clean(json.text));
-    } else if (json.action === 'play') {
-        play(clean(json.text));
-    } else {
-        console.log(`ERROR: Message received with invalid action: ${json.action}`)
-    }
-}
+// Publish status
+const publishStatus = (status) => {
+    client.publish(`${MQTT_TOPIC}/status`, JSON.stringify({ status }));
+};
 
-function speak(lang, voice, text) {
-    if (text.length > 0) {
-        const modelLang = langModels.get(lang)
-        if (modelLang) {
-            const modelVoice = modelLang.get(voice)
-            if (modelVoice) {
-                if (voice) {
-                    console.log(`Speaking [${lang}][${voice}]: ${text}`)
-                    const speakCmd = `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`
-                    executeCommand(speakCmd);
-                }
-            }
+client.on('connect', () => {
+    publishStatus('connected');
+    console.log('MQTT connected');
+    client.subscribe(MQTT_TOPIC, (err) => {
+        if (!err) {
+            publishStatus('subscribed');
+            console.log(`Subscribed to topic ${MQTT_TOPIC}`);
         }
-    } else {
-        console.log(`ERROR: Message received with empty text`)
-    }
-}
+    });
+});
 
-function play(text) {
-    if (text.length > 0) {
-        const playCmd = `mpg123 -a hw:${ALSA_INTERFACE},0 songs/${text}`
-        executeCommand(playCmd);
-    } else {
-        console.log(`ERROR: Message received with empty text`)
+client.on('message', (topic, message) => {
+    if (isBusy) {
+        publishStatus('busy');
+        return;
     }
-}
 
-function clean(text) {
-    if (text) {
-        text = text.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿ0-9,.!;_\s]+/g, '');
+    try {
+        isBusy = true;
+        publishStatus('received');
+
+        const { action, language, voice, text } = JSON.parse(message.toString());
+        executeCommand(action, language, voice, text);
+    } catch (error) {
+        console.error('Failed to process message', error);
+        publishStatus('error');
+        isBusy = false;
     }
-    return text;
-}
+});
 
-function updateStatus(newStatus) {
-    status = newStatus;
-    mqttClient.publish(`${MQTT_TOPIC}/status`, status)
-}
-
-function executeCommand(speakCmd) {
-    console.log(speakCmd)
-    if (status === "AVAILABLE") {
-        updateStatus("BUSY");
-        exec(speakCmd,
-            (error, stdout, stderr) => {
-                if (error !== null) {
-                    console.log('exec error: ', error)
-                    if (error.signal !== null) {
-                        console.log('signal: ', error.signal)
-                    }
-                }
-                updateStatus("AVAILABLE");
-            }
-        )
-    } else {
-        console.log("DEVICE NOT AVAILABLE")
+app.get('/execute', (req, res) => {
+    if (isBusy) {
+        return res.status(423).send('Server is busy');
     }
-}
+
+    const { action, language, voice, text } = req.query;
+    executeCommand(action, language, voice, text);
+    res.send('Command received');
+});
+
+const executeCommand = (action, language, voice, text) => {
+    const command = actionCommands[action];
+    if (!command) {
+        console.error('Invalid action');
+        publishStatus('error');
+        isBusy = false;
+        return;
+    }
+
+    const langOption = languageMappings[language];
+    const voiceOption = voiceMappings[voice];
+
+    if (!langOption || !voiceOption) {
+        console.error('Invalid language or voice');
+        publishStatus('error');
+        isBusy = false;
+        return;
+    }
+
+    const fullCommand = `${command} ${langOption} ${voiceOption} ${text || ''}`;
+
+    exec(fullCommand, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error: ${stderr}`);
+            publishStatus('error');
+        } else {
+            console.log(`Output: ${stdout}`);
+            publishStatus('completed');
+        }
+        isBusy = false;
+    });
+};
+
+app.listen(REST_PORT, () => {
+    publishStatus('rest_listening');
+    console.log(`REST API listening on port ${REST_PORT}`);
+});
