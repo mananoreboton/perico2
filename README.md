@@ -6,14 +6,19 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 
 ### Setting up:
 
+- Be sure you have docker (20.10+), docker-compose, node (v20.3.1) and npm (9.6.7) installed
+
+- Download Javascript dependencies:
+  > npm -i
+
 - Configure environment variables
   > cp .env_example .env  
     - and replace the values in the .env file.
 
-- Download voices
+- Download voices (Ideally 'volumes' is a folder on an external hard drive)
   > mkdir -p volumes/perico2/voices  
   > ln -s volumes/perico2/voices voices  
-  > cd voices
+  > cd voices  
   > curl https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx.json -o en_US-libritts-high.onnx.json  
   > curl -LJO https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts/high/en_US-libritts-high.onnx  
   > curl https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/en_US-ryan-high.onnx.json -o en_US-ryan-high.onnx.json  
@@ -34,7 +39,7 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
   > tar -xzf piper_amd64.tar.gz  
     - back to project's root folder.
   > cd ../../
-  > ln -s volumes/perico2/piper piper
+  > ln -s volumes/perico2/piper piper  
 
 - Download the songs you want to have available
   > mkdir -p volumes/perico2/songs  
@@ -49,6 +54,8 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 
 - > docker build . -t borabora/perico2
 - > docker-compose up -d
+or  
+- > docker compose up -d
 
 ### Troubleshooting:
 
