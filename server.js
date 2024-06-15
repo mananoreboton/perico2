@@ -13,6 +13,7 @@ const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
 const MQTT_PORT = process.env.MQTT_PORT || 1883; // Default to 1883 if not specified
 
 let isBusy = false;
+let client;
 
 const actionCommands = {
     list: 'ls',
@@ -39,25 +40,51 @@ const mqttOptions = {
     port: MQTT_PORT
 };
 
-let client = mqtt.connect(MQTT_BROKER_URL, mqttOptions);
+// Function to test ALSA output interface
+const testAlsaOutput = (interface) => {
+    return new Promise((resolve, reject) => {
+        exec(`aplay -l | grep ${interface}`, (error, stdout, stderr) => {
+            if (!error) {
+                resolve(interface);
+            } else {
+                reject(stderr);
+            }
+        });
+    });
+};
 
-// Publish status
+// Function to connect to MQTT broker
+const connectToMqttBroker = () => {
+    return new Promise((resolve, reject) => {
+        client = mqtt.connect(MQTT_BROKER_URL, mqttOptions);
+
+        client.on('connect', () => {
+            publishStatus('connected');
+            console.log('MQTT connected');
+            client.subscribe(MQTT_TOPIC, (err) => {
+                if (!err) {
+                    publishStatus('subscribed');
+                    console.log(`Subscribed to topic ${MQTT_TOPIC}`);
+                    resolve();
+                } else {
+                    reject(err);
+                }
+            });
+        });
+
+        client.on('error', (err) => {
+            reject(err);
+        });
+    });
+};
+
+// Function to publish status
 const publishStatus = (status) => {
     client.publish(`${MQTT_TOPIC}/status`, JSON.stringify({ status }));
 };
 
-client.on('connect', () => {
-    publishStatus('connected');
-    console.log('MQTT connected');
-    client.subscribe(MQTT_TOPIC, (err) => {
-        if (!err) {
-            publishStatus('subscribed');
-            console.log(`Subscribed to topic ${MQTT_TOPIC}`);
-        }
-    });
-});
-
-client.on('message', (topic, message) => {
+// Function to handle incoming messages
+const handleMessage = (topic, message) => {
     if (isBusy) {
         publishStatus('busy');
         return;
@@ -74,18 +101,9 @@ client.on('message', (topic, message) => {
         publishStatus('error');
         isBusy = false;
     }
-});
+};
 
-app.get('/execute', (req, res) => {
-    if (isBusy) {
-        return res.status(423).send('Server is busy');
-    }
-
-    const { action, language, voice, text } = req.query;
-    executeCommand(action, language, voice, text);
-    res.send('Command received');
-});
-
+// Function to execute command
 const executeCommand = (action, language, voice, text) => {
     const command = actionCommands[action];
     if (!command) {
@@ -119,7 +137,60 @@ const executeCommand = (action, language, voice, text) => {
     });
 };
 
-app.listen(REST_PORT, () => {
-    publishStatus('rest_listening');
-    console.log(`REST API listening on port ${REST_PORT}`);
-});
+// Function to start the application
+const startApp = async () => {
+    try {
+        // Connect to MQTT broker
+        await connectToMqttBroker();
+
+        // List of ALSA output interfaces to test
+        const alsaOutputInterfaces = ['hw:0', 'hw:1', 'hw:2']; // Modify as needed
+
+        // Loop through each ALSA output interface and test
+        let alsaOutputFound = false;
+        for (const iface of alsaOutputInterfaces) {
+            try {
+                await testAlsaOutput(iface);
+                console.log(`ALSA output interface ${iface} found.`);
+                alsaOutputFound = true;
+                break;
+            } catch (error) {
+                console.error(`Error testing ALSA output interface ${iface}: ${error}`);
+            }
+        }
+
+        if (!alsaOutputFound) {
+            // If no ALSA output interface is found, publish fatal error and exit
+            publishStatus('fatal_error');
+            console.error('No ALSA output interface found. Exiting.');
+            process.exit(1);
+        }
+
+        // If ALSA output interface is found, start the REST server
+        app.listen(REST_PORT, () => {
+            publishStatus('rest_listening');
+            console.log(`REST API listening on port ${REST_PORT}`);
+        });
+
+        // Set up MQTT message handler
+        client.on('message', handleMessage);
+
+        // Set up REST endpoint after successful initialization
+        app.get('/execute', (req, res) => {
+            if (isBusy) {
+                return res.status(423).send('Server is busy');
+            }
+
+            const { action, language, voice, text } = req.query;
+            executeCommand(action, language, voice, text);
+            res.send('Command received');
+        });
+
+    } catch (error) {
+        console.error('An error occurred:', error);
+        process.exit(1);
+    }
+};
+
+// Start the application
+startApp();
