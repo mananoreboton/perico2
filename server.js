@@ -40,12 +40,33 @@ const mqttOptions = {
     port: MQTT_PORT
 };
 
-// Function to test ALSA output interface
-const testAlsaOutput = (interface) => {
+// Function to extract ALSA output interfaces
+const getAlsaOutputInterfaces = () => {
     return new Promise((resolve, reject) => {
-        exec(`aplay -l | grep ${interface}`, (error, stdout, stderr) => {
+        exec('aplay -l', (error, stdout, stderr) => {
+            if (error) {
+                reject(stderr);
+            } else {
+                const interfaces = [];
+                const lines = stdout.split('\n');
+                for (const line of lines) {
+                    const match = line.match(/card (\d+):.*device (\d+):/);
+                    if (match) {
+                        interfaces.push({ card: match[1], device: match[2] });
+                    }
+                }
+                resolve(interfaces);
+            }
+        });
+    });
+};
+
+// Function to test ALSA output interface using speaker-test
+const testAlsaOutput = ({ card, device }) => {
+    return new Promise((resolve, reject) => {
+        exec(`speaker-test -c 2 -D plughw:${card},${device} -t wav -l 1`, (error, stdout, stderr) => {
             if (!error) {
-                resolve(interface);
+                resolve();
             } else {
                 reject(stderr);
             }
@@ -143,19 +164,19 @@ const startApp = async () => {
         // Connect to MQTT broker
         await connectToMqttBroker();
 
-        // List of ALSA output interfaces to test
-        const alsaOutputInterfaces = ['hw:0', 'hw:1', 'hw:2']; // Modify as needed
+        // Get ALSA output interfaces
+        const alsaOutputInterfaces = await getAlsaOutputInterfaces();
 
         // Loop through each ALSA output interface and test
         let alsaOutputFound = false;
         for (const iface of alsaOutputInterfaces) {
             try {
                 await testAlsaOutput(iface);
-                console.log(`ALSA output interface ${iface} found.`);
+                console.log(`ALSA output interface card ${iface.card}, device ${iface.device} found.`);
                 alsaOutputFound = true;
                 break;
             } catch (error) {
-                console.error(`Error testing ALSA output interface ${iface}: ${error}`);
+                console.error(`Error testing ALSA output interface card ${iface.card}, device ${iface.device}: ${error}`);
             }
         }
 
