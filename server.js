@@ -16,8 +16,9 @@ let isBusy = false;
 let client;
 
 const actionCommands = {
-  speak: `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`,
-  play: `mpg123 -a hw:${alsaInterface},0 songs/${text}`,
+  list: 'ls',
+  currentDir: 'pwd',
+  diskUsage: 'df -h',
   // Add more actions and their corresponding commands here
 };
 
@@ -32,6 +33,9 @@ const voiceMappings = {
   female: '--voice=female',
   // Add more voice mappings here
 };
+
+let alsaCard = '';
+let alsaDevice = '';
 
 const mqttOptions = {
   username: MQTT_USERNAME,
@@ -143,7 +147,12 @@ const executeCommand = (action, language, voice, text) => {
     return;
   }
 
-  const command = commandTemplate.replace('{language}', langOption).replace('{voice}', voiceOption).replace('{text}', text || '');
+  const command = commandTemplate
+    .replace('{language}', langOption)
+    .replace('{voice}', voiceOption)
+    .replace('{text}', text || '')
+    .replace('{card}', alsaCard)
+    .replace('{device}', alsaDevice);
 
   exec(command, (error, stdout, stderr) => {
     if (error) {
@@ -172,6 +181,8 @@ const startApp = async () => {
       try {
         await testAlsaOutput(iface);
         console.log(`ALSA output interface card ${iface.card}, device ${iface.device} found.`);
+        alsaCard = iface.card;
+        alsaDevice = iface.device;
         alsaOutputFound = true;
         break;
       } catch (error) {
