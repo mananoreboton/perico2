@@ -16,7 +16,7 @@ let isBusy = false;
 let client;
 
 const actionCommands = {
-    list: 'ls',
+    speak: `echo '${text}' | ./piper/piper --model voices/${modelVoice} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:${ALSA_INTERFACE}`,
     currentDir: 'pwd',
     diskUsage: 'df -h',
     // Add more actions and their corresponding commands here
@@ -78,7 +78,7 @@ const testAlsaOutput = ({ card, device }) => {
 const connectToMqttBroker = () => {
     return new Promise((resolve, reject) => {
         client = mqtt.connect(MQTT_BROKER_URL, mqttOptions);
-
+        
         client.on('connect', () => {
             publishStatus('connected');
             console.log('MQTT connected');
@@ -92,7 +92,7 @@ const connectToMqttBroker = () => {
                 }
             });
         });
-
+        
         client.on('error', (err) => {
             reject(err);
         });
@@ -110,11 +110,11 @@ const handleMessage = (topic, message) => {
         publishStatus('busy');
         return;
     }
-
+    
     try {
         isBusy = true;
         publishStatus('received');
-
+        
         const { action, language, voice, text } = JSON.parse(message.toString());
         executeCommand(action, language, voice, text);
     } catch (error) {
@@ -133,19 +133,19 @@ const executeCommand = (action, language, voice, text) => {
         isBusy = false;
         return;
     }
-
+    
     const langOption = languageMappings[language];
     const voiceOption = voiceMappings[voice];
-
+    
     if (!langOption || !voiceOption) {
         console.error('Invalid language or voice');
         publishStatus('error');
         isBusy = false;
         return;
     }
-
+    
     const fullCommand = `${command} ${langOption} ${voiceOption} ${text || ''}`;
-
+    
     exec(fullCommand, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error: ${stderr}`);
@@ -163,10 +163,10 @@ const startApp = async () => {
     try {
         // Connect to MQTT broker
         await connectToMqttBroker();
-
+        
         // Get ALSA output interfaces
         const alsaOutputInterfaces = await getAlsaOutputInterfaces();
-
+        
         // Loop through each ALSA output interface and test
         let alsaOutputFound = false;
         for (const iface of alsaOutputInterfaces) {
@@ -179,34 +179,34 @@ const startApp = async () => {
                 console.error(`Error testing ALSA output interface card ${iface.card}, device ${iface.device}: ${error}`);
             }
         }
-
+        
         if (!alsaOutputFound) {
             // If no ALSA output interface is found, publish fatal error and exit
             publishStatus('fatal_error');
             console.error('No ALSA output interface found. Exiting.');
             process.exit(1);
         }
-
+        
         // If ALSA output interface is found, start the REST server
         app.listen(REST_PORT, () => {
             publishStatus('rest_listening');
             console.log(`REST API listening on port ${REST_PORT}`);
         });
-
+        
         // Set up MQTT message handler
         client.on('message', handleMessage);
-
+        
         // Set up REST endpoint after successful initialization
         app.get('/execute', (req, res) => {
             if (isBusy) {
                 return res.status(423).send('Server is busy');
             }
-
+            
             const { action, language, voice, text } = req.query;
             executeCommand(action, language, voice, text);
             res.send('Command received');
         });
-
+        
     } catch (error) {
         console.error('An error occurred:', error);
         process.exit(1);
