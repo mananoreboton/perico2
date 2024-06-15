@@ -2,8 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const mqtt = require('mqtt');
 const { exec } = require('child_process');
+const fs = require('fs');
 
 const app = express();
+
+// Check if .env file exists
+if (!fs.existsSync('.env')) {
+  console.error('Error: .env file not found. Exiting.');
+  process.exit(1);
+}
+
+// Check required environment variables
+const requiredEnvVars = ['MQTT_BROKER_URL', 'MQTT_TOPIC', 'REST_PORT', 'MQTT_USERNAME', 'MQTT_PASSWORD'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`Error: Missing required environment variables: ${missingEnvVars.join(', ')}. Exiting.`);
+  process.exit(1);
+}
 
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
 const MQTT_TOPIC = process.env.MQTT_TOPIC;
