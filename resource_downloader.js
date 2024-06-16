@@ -2,6 +2,7 @@ const os = require('os');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 // List of resources with version, URL, and directory
 const resources = [
@@ -65,11 +66,31 @@ const downloadResource = async (url, directory) => {
     https.get(url, (response) => {
       response.pipe(file);
       file.on('finish', () => {
-        file.close(resolve(filePath));
+        file.close(async () => {
+          if (fileName.endsWith('.gz')) {
+            await decompressGzFile(filePath);
+            fs.unlinkSync(filePath); // Delete the compressed file after decompression
+          }
+          resolve(filePath);
+        });
       });
     }).on('error', (err) => {
       fs.unlink(filePath, () => reject(err));
     });
+  });
+};
+
+// Function to decompress .gz files
+const decompressGzFile = async (filePath) => {
+  const destPath = filePath.slice(0, -3); // Remove .gz extension
+  const gzip = zlib.createGunzip();
+  const input = fs.createReadStream(filePath);
+  const output = fs.createWriteStream(destPath);
+
+  console.log(`Decompressing ${filePath} to ${destPath}`);
+
+  return new Promise((resolve, reject) => {
+    input.pipe(gzip).pipe(output).on('finish', resolve).on('error', reject);
   });
 };
 
