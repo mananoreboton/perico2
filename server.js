@@ -35,7 +35,7 @@ let selectedCard = '';
 let selectedDevice = '';
 
 const actionCommands = {
-  speak: `echo {{text}} | ./piper/piper --model voices/{{options}} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:{{selectedCard}}`,
+  speak: `echo {{text}} | resources/piper/piper --model resources/voices/{{options}} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:{{selectedCard}}`,
   play: `mpg123 -a hw:{{selectedCard}},{{selectedDevice}} songs/{{text}}`,
   // Add more actions and their corresponding commands here
 };

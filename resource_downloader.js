@@ -104,4 +104,15 @@ const decompressTarGzFile = async (filePath, destDir) => {
   });
 };
 
+if (require.main === module) {
+  downloadResources()
+    .then(() => {
+      console.log('All resources downloaded and processed successfully.');
+    })
+    .catch((error) => {
+      console.error('Failed to download and process resources:', error);
+      process.exit(1); // Exit with an error code
+    });
+}
+
 module.exports = { downloadResources };
