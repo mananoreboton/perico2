@@ -42,40 +42,61 @@ const downloadResources = async () => {
     !resource.version || resource.version === architecture
   );
 
-  // Download filtered resources
-  await Promise.all(filteredResources.map(async (resource) => {
-    await downloadResource(resource.url, resource.directory);
-  }));
+  // Download filtered resources sequentially
+  for (const resource of filteredResources) {
+    try {
+      await downloadResource(resource.url, resource.directory);
+      await wait(10000); // Wait for 10 seconds between downloads
+    } catch (error) {
+      console.error(`Error downloading ${resource.url}: ${error}`);
+      cleanupFailedDownload(resource.directory);
+    }
+  }
 };
 
 // Function to download a single resource
 const downloadResource = async (url, directory) => {
   const fileName = path.basename(url);
   const downloadDir = path.join(__dirname, 'resources', directory);
+  const filePath = path.join(downloadDir, fileName);
 
   // Create download directory if it doesn't exist
   if (!fs.existsSync(downloadDir)) {
     fs.mkdirSync(downloadDir, { recursive: true });
   }
 
-  const filePath = path.join(downloadDir, fileName);
-
   console.log(`Downloading ${fileName} to ${downloadDir}`);
 
   const file = fs.createWriteStream(filePath);
-  await new Promise((resolve, reject) => {
-    https.get(url, (response) => {
+
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        reject(`Failed to download ${url}. Status Code: ${response.statusCode}`);
+        return;
+      }
+
       response.pipe(file);
       file.on('finish', () => {
-        file.close(async () => {
-          if (fileName.endsWith('.gz')) {
-            await decompressTarGzFile(filePath, downloadDir);
-            fs.unlinkSync(filePath); // Delete the compressed file after decompression
+        file.close(() => {
+          if (fileName.endsWith('.tar.gz')) {
+            decompressTarGzFile(filePath, downloadDir)
+              .then(() => {
+                fs.unlinkSync(filePath); // Delete the compressed file after decompression
+                resolve();
+              })
+              .catch((err) => {
+                cleanupFailedDownload(directory);
+                reject(`Error decompressing ${fileName}: ${err}`);
+              });
+          } else {
+            resolve();
           }
-          resolve(filePath);
         });
       });
-    }).on('error', (err) => {
+    });
+
+    request.on('error', (err) => {
       fs.unlink(filePath, () => reject(err));
     });
   });
@@ -87,12 +108,38 @@ const decompressTarGzFile = async (filePath, destDir) => {
 
   return new Promise((resolve, reject) => {
     const readStream = fs.createReadStream(filePath);
-    const writeStream = tar.x({ cwd: destDir });
+    const writeStream = tar.x({
+      file: filePath,
+      cwd: destDir
+    });
 
     readStream.pipe(zlib.createGunzip()).pipe(writeStream);
 
     writeStream.on('finish', resolve);
     writeStream.on('error', reject);
+  });
+};
+
+// Function to wait for a specified time in milliseconds
+const wait = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
+
+// Function to clean up failed download by removing downloaded files
+const cleanupFailedDownload = (directory) => {
+  const downloadDir = path.join(__dirname, 'resources', directory);
+  fs.readdir(downloadDir, (err, files) => {
+    if (err) {
+      console.error(`Error reading directory ${downloadDir}: ${err}`);
+      return;
+    }
+    files.forEach(file => {
+      const filePath = path.join(downloadDir, file);
+      fs.unlinkSync(filePath);
+      console.log(`Removed ${filePath}`);
+    });
   });
 };
 
