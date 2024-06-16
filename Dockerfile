@@ -16,6 +16,7 @@ COPY asound.conf /etc/asound.conf
 # Bundle app source
 COPY server.js .
 COPY resource_downloader.js .
+COPY .env .
 
 EXPOSE 9051
 CMD [ "node", "server.js" ]

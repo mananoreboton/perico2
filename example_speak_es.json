@@ -1,6 +1,6 @@
 {
   "action": "speak",
-  "lang": "es_ES",
-  "voice": "f",
+  "language": "es-ES",
+  "voice": "male",
   "text": "avísame si se escucha"
 }

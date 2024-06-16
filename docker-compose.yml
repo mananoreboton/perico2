@@ -2,14 +2,9 @@ version: '3.6'
 
 services:
   perico2:
-    image: borabora/perico2
-    container_name: perico2
+    image: borabora/perico3
+    container_name: perico3
     privileged: true
-    volumes:
-      - ./volumes/perico2/voices:/usr/src/app/voices
-      - ./volumes/perico2/piper:/usr/src/app/piper
-      - ./volumes/perico2/songs:/usr/src/app/songs
-      - ./.env:/usr/src/app/.env
     ports:
       - "9051:9051"
     restart: unless-stopped
