@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const tar = require('tar');
 
 // List of resources with version, URL, and directory
 const resources = [
@@ -68,7 +69,7 @@ const downloadResource = async (url, directory) => {
       file.on('finish', () => {
         file.close(async () => {
           if (fileName.endsWith('.gz')) {
-            await decompressGzFile(filePath);
+            await decompressTarGzFile(filePath, downloadDir);
             fs.unlinkSync(filePath); // Delete the compressed file after decompression
           }
           resolve(filePath);
@@ -80,17 +81,18 @@ const downloadResource = async (url, directory) => {
   });
 };
 
-// Function to decompress .gz files
-const decompressGzFile = async (filePath) => {
-  const destPath = filePath.slice(0, -3); // Remove .gz extension
-  const gzip = zlib.createGunzip();
-  const input = fs.createReadStream(filePath);
-  const output = fs.createWriteStream(destPath);
-
-  console.log(`Decompressing ${filePath} to ${destPath}`);
+// Function to decompress .tar.gz files
+const decompressTarGzFile = async (filePath, destDir) => {
+  console.log(`Decompressing ${filePath} to ${destDir}`);
 
   return new Promise((resolve, reject) => {
-    input.pipe(gzip).pipe(output).on('finish', resolve).on('error', reject);
+    const readStream = fs.createReadStream(filePath);
+    const writeStream = tar.x({ cwd: destDir });
+
+    readStream.pipe(zlib.createGunzip()).pipe(writeStream);
+
+    writeStream.on('finish', resolve);
+    writeStream.on('error', reject);
   });
 };
 

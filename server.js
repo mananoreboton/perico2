@@ -3,6 +3,7 @@ const express = require('express');
 const mqtt = require('mqtt');
 const { exec } = require('child_process');
 const { downloadResources } = require('./resource_downloader');
+const fs = require('fs');
 
 const app = express();
 
