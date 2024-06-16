@@ -35,22 +35,16 @@ let selectedCard = '';
 let selectedDevice = '';
 
 const actionCommands = {
-  list: 'ls',
-  currentDir: 'pwd',
-  diskUsage: 'df -h',
+  speak: `echo {{text}} | ./piper/piper --model voices/{{options}} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:{{selectedCard}}`,
+  play: `mpg123 -a hw:{{selectedCard}},{{selectedDevice}} songs/{{text}}`,
   // Add more actions and their corresponding commands here
 };
 
-const languageMappings = {
-  en: '--lang=en',
-  es: '--lang=es',
-  // Add more language mappings here
-};
-
-const voiceMappings = {
-  male: '--voice=male',
-  female: '--voice=female',
-  // Add more voice mappings here
+const commandOptions = {
+  'en-US_male': 'en_US-ryan-high.onnx',
+  'en-US_female': 'en_US-libritts-high.onnx',
+  'es-ES_male': 'es_ES-sharvard-medium.onnx',
+  'es-ES_female': 'es_ES-mls_10246-low.onnx'
 };
 
 const mqttOptions = {
@@ -145,14 +139,12 @@ const handleMessage = (topic, message) => {
 
 // Function to execute command
 const executeCommand = (action, language, voice, text) => {
-  const langOption = languageMappings[language];
-  const voiceOption = voiceMappings[voice];
 
-  if (!langOption || !voiceOption) {
-    console.error('Invalid language or voice');
-    publishStatus('error');
-    isBusy = false;
-    return;
+  const key = `${language}_${voice}`;
+  const options = commandOptions[key];
+
+  if (!options) {
+    throw new Error(`Invalid language and voice combination: ${key}`);
   }
 
   if (!selectedCard || !selectedDevice) {
@@ -171,11 +163,12 @@ const executeCommand = (action, language, voice, text) => {
   }
 
   const fullCommand = commandTemplate
-    .replace('${langOption}', langOption)
-    .replace('${voiceOption}', voiceOption)
-    .replace('${text}', text || '')
-    .replace('${selectedCard}', selectedCard)
-    .replace('${selectedDevice}', selectedDevice);
+    .replace('{{options}}', options)
+    .replace('{{text}}', text || '')
+    .replace('{{selectedCard}}', selectedCard)
+    .replace('{{selectedDevice}}', selectedDevice);
+
+  console.log(`Command:\t ${fullCommand}`);
 
   exec(fullCommand, (error, stdout, stderr) => {
     if (error) {
