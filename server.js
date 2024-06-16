@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mqtt = require('mqtt');
 const { exec } = require('child_process');
-const fs = require('fs');
+const { downloadResources } = require('./resource_downloader');
 
 const app = express();
 
@@ -30,6 +30,8 @@ const MQTT_PORT = process.env.MQTT_PORT || 1883; // Default to 1883 if not speci
 
 let isBusy = false;
 let client;
+let selectedCard = '';
+let selectedDevice = '';
 
 const actionCommands = {
   list: 'ls',
@@ -49,9 +51,6 @@ const voiceMappings = {
   female: '--voice=female',
   // Add more voice mappings here
 };
-
-let alsaCard = '';
-let alsaDevice = '';
 
 const mqttOptions = {
   username: MQTT_USERNAME,
@@ -120,7 +119,7 @@ const connectToMqttBroker = () => {
 
 // Function to publish status
 const publishStatus = (status) => {
-  client.publish(`${MQTT_TOPIC}/status`, JSON.stringify({ status }));
+  client.publish(`${MQTT_TOPIC}/status`, status);
 };
 
 // Function to handle incoming messages
@@ -145,6 +144,23 @@ const handleMessage = (topic, message) => {
 
 // Function to execute command
 const executeCommand = (action, language, voice, text) => {
+  const langOption = languageMappings[language];
+  const voiceOption = voiceMappings[voice];
+
+  if (!langOption || !voiceOption) {
+    console.error('Invalid language or voice');
+    publishStatus('error');
+    isBusy = false;
+    return;
+  }
+
+  if (!selectedCard || !selectedDevice) {
+    console.error('No ALSA output interface selected');
+    publishStatus('error');
+    isBusy = false;
+    return;
+  }
+
   const commandTemplate = actionCommands[action];
   if (!commandTemplate) {
     console.error('Invalid action');
@@ -153,24 +169,14 @@ const executeCommand = (action, language, voice, text) => {
     return;
   }
 
-  const langOption = languageMappings[language];
-  const voiceOption = voiceMappings[voice];
-  
-  if (!langOption || !voiceOption) {
-    console.error('Invalid language or voice');
-    publishStatus('error');
-    isBusy = false;
-    return;
-  }
+  const fullCommand = commandTemplate
+    .replace('${langOption}', langOption)
+    .replace('${voiceOption}', voiceOption)
+    .replace('${text}', text || '')
+    .replace('${selectedCard}', selectedCard)
+    .replace('${selectedDevice}', selectedDevice);
 
-  const command = commandTemplate
-    .replace('{language}', langOption)
-    .replace('{voice}', voiceOption)
-    .replace('{text}', text || '')
-    .replace('{card}', alsaCard)
-    .replace('{device}', alsaDevice);
-
-  exec(command, (error, stdout, stderr) => {
+  exec(fullCommand, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error: ${stderr}`);
       publishStatus('error');
@@ -185,6 +191,9 @@ const executeCommand = (action, language, voice, text) => {
 // Function to start the application
 const startApp = async () => {
   try {
+    // Download resources
+    await downloadResources();
+
     // Connect to MQTT broker
     await connectToMqttBroker();
 
@@ -195,14 +204,20 @@ const startApp = async () => {
     let alsaOutputFound = false;
     for (const iface of alsaOutputInterfaces) {
       try {
+        publishStatus('interface_testing');
         await testAlsaOutput(iface);
         console.log(`ALSA output interface card ${iface.card}, device ${iface.device} found.`);
-        alsaCard = iface.card;
-        alsaDevice = iface.device;
+        publishStatus('interface_found');
+        
+        // Save selected card and device
+        selectedCard = iface.card;
+        selectedDevice = iface.device;
+
         alsaOutputFound = true;
         break;
       } catch (error) {
         console.error(`Error testing ALSA output interface card ${iface.card}, device ${iface.device}: ${error}`);
+        publishStatus('interface_error');
       }
     }
 
@@ -225,16 +240,30 @@ const startApp = async () => {
     // Set up REST endpoint after successful initialization
     app.get('/execute', (req, res) => {
       if (isBusy) {
-        return res.status(423).send('Server is busy');
+        return res.status(423).send('Server is busy processing another request');
       }
 
       const { action, language, voice, text } = req.query;
-      executeCommand(action, language, voice, text);
-      res.send('Command received');
-    });
 
+      if (!action || !language || !voice) {
+        return res.status(400).send('Missing required parameters');
+      }
+
+      try {
+        isBusy = true;
+        publishStatus('received');
+        executeCommand(action, language, voice, text);
+        res.status(200).send('Command executed successfully');
+      } catch (error) {
+        console.error('Failed to execute command', error);
+        publishStatus('error');
+        isBusy = false;
+        res.status(500).send('Failed to execute command');
+      }
+    });
   } catch (error) {
-    console.error('An error occurred:', error);
+    console.error('Failed to start the application', error);
+    publishStatus('fatal_error');
     process.exit(1);
   }
 };
