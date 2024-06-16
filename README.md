@@ -9,7 +9,7 @@ It is implemented as a docker-compose service with volumes to avoid reading/writ
 - Be sure you have docker (20.10+), docker-compose, node (18.19.1) and npm installed
 
 - Download Javascript dependencies:
-  > npm -i
+  > npm install
 
 - Configure environment variables
   > cp .env_example .env  
