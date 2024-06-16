@@ -36,6 +36,7 @@ const getArchitecture = () => {
 // Function to download resources based on CPU architecture
 const downloadResources = async () => {
   const architecture = getArchitecture();
+  console.log(`Detected architecture ${architecture}.`);
 
   // Filter resources based on architecture and universal ones
   const filteredResources = resources.filter(resource => 
@@ -53,6 +54,12 @@ const downloadResource = async (url, directory) => {
   const fileName = path.basename(url);
   const downloadDir = path.join(__dirname, 'resources', directory);
   const filePath = path.join(downloadDir, fileName);
+
+  // Check if the file already exists
+  if (fs.existsSync(filePath)) {
+    console.log(`${fileName} already exists. Skipping download.`);
+    return; // Exit early if the file already exists
+  }
 
   // Create download directory if it doesn't exist
   if (!fs.existsSync(downloadDir)) {
@@ -89,42 +96,12 @@ const decompressTarGzFile = async (filePath, destDir) => {
   console.log(`Decompressing ${filePath} to ${destDir}`);
 
   return new Promise((resolve, reject) => {
-    const readStream = fs.createReadStream(filePath);
-    const writeStream = tar.x({
-      file: filePath,
-      cwd: destDir
-    });
-
-    readStream.pipe(zlib.createGunzip()).pipe(writeStream);
-
-    writeStream.on('finish', resolve);
-    writeStream.on('error', reject);
+    fs.createReadStream(filePath)
+      .pipe(require('zlib').createGunzip()) // Pipe through zlib to gunzip
+      .pipe(tar.x({ cwd: destDir })) // Extract using tar, setting cwd to destination directory
+      .on('finish', resolve) // Resolve the promise when extraction is complete
+      .on('error', reject); // Reject the promise if there's an error
   });
-};
-
-// Function to clean up failed download by removing downloaded files
-const cleanupFailedDownload = (directory) => {
-  const downloadDir = path.join(__dirname, 'resources', directory);
-  
-  try {
-    const files = fs.readdirSync(downloadDir);
-
-    files.forEach((file) => {
-      const filePath = path.join(downloadDir, file);
-      const stat = fs.statSync(filePath);
-
-      if (stat.isFile()) {
-        fs.unlinkSync(filePath); // Delete the file
-        console.log(`Removed file: ${filePath}`);
-      } else if (stat.isDirectory()) {
-        console.warn(`Skipped removal of directory: ${filePath}`);
-      }
-    });
-
-  } catch (err) {
-    console.error(`Error cleaning up directory ${downloadDir}: ${err}`);
-    throw err; // Throw the error to propagate it up
-  }
 };
 
 module.exports = { downloadResources };
