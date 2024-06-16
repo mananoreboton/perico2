@@ -263,7 +263,7 @@ const startApp = async () => {
       }
     });
   } catch (error) {
-    console.error('Failed to start the application', error);
+    console.error('Failed to start the application.', error);
     publishStatus('fatal_error');
     process.exit(1);
   }
