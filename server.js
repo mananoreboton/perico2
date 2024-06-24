@@ -35,8 +35,8 @@ let selectedCard = '';
 let selectedDevice = '';
 
 const actionCommands = {
-  speak: `echo {{text}} | resources/piper/piper --model resources/voices/{{options}} --output_raw | aplay --channels=1 --file-type raw --rate=22050 -f S16_LE -D plughw:{{selectedCard}}`,
-  play: `mpg123 -a hw:{{selectedCard}},{{selectedDevice}} songs/{{text}}`,
+  speak: `echo {{text}} | resources/piper/piper --model resources/voices/{{options}} --output_raw | aplay --channels=2 --file-type raw --rate=22050 -f S16_LE -D plughw:CARD={{selectedCard}},DEV={{selectedDevice}}`,
+  play: `mpg123 -a plughw:CARD={{selectedCard}},DEV={{selectedDevice}} songs/{{text}}`,
   // Add more actions and their corresponding commands here
 };
 
@@ -53,31 +53,16 @@ const mqttOptions = {
   port: MQTT_PORT
 };
 
-// Function to extract ALSA output interfaces
 const getAlsaOutputInterfaces = () => {
-  return new Promise((resolve, reject) => {
-    exec('aplay -l', (error, stdout, stderr) => {
-      if (error) {
-        reject(stderr);
-      } else {
-        const interfaces = [];
-        const lines = stdout.split('\n');
-        for (const line of lines) {
-          const match = line.match(/card (\d+):.*device (\d+):/);
-          if (match) {
-            interfaces.push({ card: match[1], device: match[2] });
-          }
-        }
-        resolve(interfaces);
-      }
-    });
-  });
+  const interfaces = [];
+  interfaces.push({ card: "UACDemoV10", device: "0" });
+  return interfaces;
 };
 
 // Function to test ALSA output interface using speaker-test
 const testAlsaOutput = ({ card, device }) => {
   return new Promise((resolve, reject) => {
-    exec(`timeout 4 speaker-test -c 2 -r 48000 -F S16_LE -D plughw:${card},${device} -t wav -l 10`, (error, stdout, stderr) => {
+    exec(`speaker-test -c 2 -r 48000 -F S16_LE -D plughw:CARD=${card},DEV=${device} -t wav -l 2`, (error, stdout, stderr) => {
       if (!error) {
         resolve();
       } else {
@@ -192,7 +177,7 @@ const startApp = async () => {
     await connectToMqttBroker();
 
     // Get ALSA output interfaces
-    const alsaOutputInterfaces = await getAlsaOutputInterfaces();
+    const alsaOutputInterfaces = getAlsaOutputInterfaces();
 
     // Loop through each ALSA output interface and test
     let alsaOutputFound = false;
