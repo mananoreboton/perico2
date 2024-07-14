@@ -62,7 +62,7 @@ const getAlsaOutputInterfaces = () => {
 // Function to test ALSA output interface using speaker-test
 const testAlsaOutput = ({ card, device }) => {
   return new Promise((resolve, reject) => {
-    exec(`speaker-test -c 2 -r 48000 -F S16_LE -D plughw:CARD=${card},DEV=${device} -t wav -l 2`, (error, stdout, stderr) => {
+    exec(`speaker-test -c 2 -r 48000 -F S16_LE -D plughw:CARD=${card},DEV=${device} -t wav -l 2`, { timeout: 4000 }, (error, stdout, stderr) => {
       if (!error) {
         resolve();
       } else {
@@ -111,20 +111,19 @@ const handleMessage = (topic, message) => {
 
   try {
     isBusy = true;
-    publishStatus('received');
+    publishStatus('busy');
 
     const { action, language, voice, text } = JSON.parse(message.toString());
     executeCommand(action, language, voice, text);
   } catch (error) {
     console.error('Failed to process message', error);
-    publishStatus('error');
+    publishStatus('available');
     isBusy = false;
   }
 };
 
 // Function to execute command
 const executeCommand = (action, language, voice, text) => {
-
   const key = `${language}_${voice}`;
   const options = commandOptions[key];
 
@@ -158,10 +157,10 @@ const executeCommand = (action, language, voice, text) => {
   exec(fullCommand, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error: ${stderr}`);
-      publishStatus('error');
+      publishStatus('available');
     } else {
       console.log(`Output: ${stdout}`);
-      publishStatus('completed');
+      publishStatus('available');
     }
     isBusy = false;
   });
@@ -230,12 +229,12 @@ const startApp = async () => {
 
       try {
         isBusy = true;
-        publishStatus('received');
+        publishStatus('busy');
         executeCommand(action, language, voice, text);
         res.status(200).send('Command executed successfully');
       } catch (error) {
         console.error('Failed to execute command', error);
-        publishStatus('error');
+        publishStatus('available');
         isBusy = false;
         res.status(500).send('Failed to execute command');
       }
