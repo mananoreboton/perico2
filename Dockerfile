@@ -19,11 +19,7 @@ COPY resource_downloader.js .
 COPY .env .
 
 # Copy songs and voices directories
-COPY songs /usr/src/app/songs
-COPY voices /usr/src/app/voices
-
-# Copy all files starting with 'piper'
-COPY piper* /usr/src/app/
+COPY resources /usr/src/app/resources
 
 EXPOSE 9051
 CMD [ "node", "server.js" ]
