@@ -62,7 +62,7 @@ const getAlsaOutputInterfaces = () => {
 // Function to test ALSA output interface using speaker-test
 const testAlsaOutput = ({ card, device }) => {
   return new Promise((resolve, reject) => {
-    exec(`speaker-test -c 2 -r 48000 -F S16_LE -D plughw:CARD=${card},DEV=${device} -t wav -l 2`, { timeout: 4000 }, (error, stdout, stderr) => {
+    exec(`speaker-test -c 2 -r 48000 -F S16_LE -D plughw:CARD=${card},DEV=${device} -t wav -l 2`, (error, stdout, stderr) => {
       if (!error) {
         resolve();
       } else {
