@@ -208,7 +208,7 @@ const startApp = async () => {
 
     // If ALSA output interface is found, start the REST server
     app.listen(REST_PORT, () => {
-      publishStatus('rest_listening');
+      publishStatus('available');
       console.log(`REST API listening on port ${REST_PORT}`);
     });
 
@@ -239,7 +239,6 @@ const startApp = async () => {
         res.status(500).send('Failed to execute command');
       }
     });
-    publishStatus("available");
   } catch (error) {
     console.error('Failed to start the application.', error);
     publishStatus('fatal_error');
