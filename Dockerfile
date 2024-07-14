@@ -13,13 +13,14 @@ COPY package*.json ./
 RUN npm install
 
 COPY asound.conf /etc/asound.conf
+
+# Copy songs and voices directories
+COPY resources /usr/src/app/resources
+
 # Bundle app source
 COPY server.js .
 COPY resource_downloader.js .
 COPY .env .
-
-# Copy songs and voices directories
-COPY resources /usr/src/app/resources
 
 EXPOSE 9051
 CMD [ "node", "server.js" ]

@@ -239,6 +239,7 @@ const startApp = async () => {
         res.status(500).send('Failed to execute command');
       }
     });
+    publishStatus("available");
   } catch (error) {
     console.error('Failed to start the application.', error);
     publishStatus('fatal_error');
