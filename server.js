@@ -28,6 +28,8 @@ const REST_PORT = process.env.REST_PORT;
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
 const MQTT_PORT = process.env.MQTT_PORT || 1883; // Default to 1883 if not specified
+const ALSA_CARD = process.env.ALSA_CARD || "UACDemoV10";
+const ALSA_DEVICE = process.env.ALSA_DEVICE || "0";
 
 let isBusy = false;
 let client;
@@ -55,7 +57,7 @@ const mqttOptions = {
 
 const getAlsaOutputInterfaces = () => {
   const interfaces = [];
-  interfaces.push({ card: "PCH", device: "0" });
+  interfaces.push({ card: ALSA_CARD, device: ALSA_DEVICE });
   return interfaces;
 };
 
