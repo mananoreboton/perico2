@@ -255,6 +255,8 @@ const startApp = async () => {
         res.status(500).send('Failed to execute command');
       }
     });
+    
+    executeCommand("speak", "es-ES", "male", "Perico.");
   } catch (error) {
     console.error('Failed to start the application.', error);
     publishStatus('fatal_error');
