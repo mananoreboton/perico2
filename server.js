@@ -55,7 +55,7 @@ const mqttOptions = {
 
 const getAlsaOutputInterfaces = () => {
   const interfaces = [];
-  interfaces.push({ card: "UACDemoV10", device: "0" });
+  interfaces.push({ card: "PCH", device: "0" });
   return interfaces;
 };
 
@@ -153,8 +153,22 @@ const executeCommand = (action, language, voice, text) => {
     .replace('{{selectedDevice}}', selectedDevice);
 
   console.log(`Command:\t ${fullCommand}`);
+  
+  let isCompleted = false;
 
-  exec(fullCommand, (error, stdout, stderr) => {
+  // Start the timeout
+  const timeoutId = setTimeout(() => {
+    if (!isCompleted) {
+      console.error('The command took too long to execute and was interrupted.');
+      childProcess.kill();  // Kill the child process if the timeout is reached
+      publishStatus('available');  // Publish an error status
+      isBusy = false;  // Mark the system as not busy
+    }
+  }, 10000);
+
+  const childProcess = exec(fullCommand, (error, stdout, stderr) => {
+    isCompleted = true;  // Mark the process as completed
+    clearTimeout(timeoutId);  // Clear the timeout
     if (error) {
       console.error(`Error: ${stderr}`);
       publishStatus('available');
@@ -184,7 +198,7 @@ const startApp = async () => {
       try {
         publishStatus('interface_testing');
         await testAlsaOutput(iface);
-        console.log(`ALSA output interface card ${iface.card}, device ${iface.device} found.`);
+        console.log(`ALSA output interface card ${iface.card}, device number ${iface.device} found.`);
         publishStatus('interface_found');
         
         // Save selected card and device
@@ -194,7 +208,7 @@ const startApp = async () => {
         alsaOutputFound = true;
         break;
       } catch (error) {
-        console.error(`Error testing ALSA output interface card ${iface.card}, device ${iface.device}: ${error}`);
+        console.error(`Error testing ALSA output interface card ${iface.card}, device number ${iface.device}: ${error}`);
         publishStatus('interface_error');
       }
     }
